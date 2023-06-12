@@ -1,0 +1,51 @@
+services:
+  fluent-input:
+    image: fluent/fluent-bit:latest-debug
+    restart: unless-stopped
+    environment:
+      LOKI_PUSH_PIPE_HOST: loki-push-pipe
+    volumes:
+      - $PWD:$PWD
+    working_dir: $PWD
+    entrypoint: /fluent-bit/bin/fluent-bit
+    command: -c fluentbit-input.conf
+
+  init-pipe:
+    image: busybox
+    restart: on-failure
+    working_dir: /var/run/loki-push-pipe
+    volumes:
+      - pipe:/var/run/loki-push-pipe
+    entrypoint: [sh, -c]
+    command:
+      - rm -rf pipe && mkfifo pipe
+
+  loki-push-pipe:
+    build: ..
+    restart: unless-stopped
+    depends_on:
+      init-pipe:
+        condition: service_completed_successfully
+    volumes:
+      - pipe:/var/run/loki-push-pipe
+    entrypoint: [sh, -c]
+    command:
+      - exec loki-push-pipe > /var/run/loki-push-pipe/pipe
+  
+  fluentbit-pipe:
+    image: fluent/fluent-bit:latest-debug
+    restart: unless-stopped
+    depends_on:
+      init-pipe:
+        condition: service_completed_successfully
+    volumes:
+      - $PWD:$PWD
+      - pipe:/var/run/loki-push-pipe
+    working_dir: $PWD
+    entrypoint: [sh, -c]
+    command: 
+      - exec /fluent-bit/bin/fluent-bit -c fluentbit-pipe.conf < /var/run/loki-push-pipe/pipe
+
+volumes:
+  go:
+  pipe:
