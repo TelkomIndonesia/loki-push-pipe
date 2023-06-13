@@ -28,7 +28,12 @@ type data struct {
 }
 
 func main() {
-	http.ListenAndServe(":3100", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/loki/api/v1/push", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(405)
+			return
+		}
+
 		req, err := push.ParseRequest(logger, "", r, nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -60,4 +65,6 @@ func main() {
 
 		w.WriteHeader(http.StatusNoContent)
 	}))
+
+	http.ListenAndServe(":3100", nil)
 }
