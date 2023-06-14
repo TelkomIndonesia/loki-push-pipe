@@ -5,10 +5,8 @@ FROM golang:1.20 AS builder
 WORKDIR /src
 COPY ./ ./
 
-ENV GOMODCACHE=/cache/go-mod \
-    GOCACHE=/cache/go-build
-RUN --mount=type=cache,target=$GOMODCACHE \
-    --mount=type=cache,target=$GOCACHE \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -o loki-push-pipe
 
 

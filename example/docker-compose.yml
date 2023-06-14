@@ -1,6 +1,6 @@
 services:
   fluent-input:
-    image: fluent/fluent-bit:latest-debug
+    image: fluent/fluent-bit:2.1.4-debug
     restart: unless-stopped
     environment:
       LOKI_PUSH_PIPE_HOST: loki-push-pipe
@@ -33,7 +33,7 @@ services:
       - exec loki-push-pipe > /var/run/loki-push-pipe/pipe
   
   fluentbit-pipe:
-    image: fluent/fluent-bit:latest-debug
+    image: fluent/fluent-bit:2.1.4-debug
     restart: unless-stopped
     depends_on:
       init-pipe:
@@ -47,5 +47,4 @@ services:
       - exec /fluent-bit/bin/fluent-bit -c fluentbit-pipe.conf < /var/run/loki-push-pipe/pipe
 
 volumes:
-  go:
   pipe:

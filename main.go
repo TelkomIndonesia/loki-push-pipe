@@ -18,8 +18,6 @@ func (l nooplogger) Log(keyvals ...interface{}) error {
 	return nil
 }
 
-var logger nooplogger
-
 type data struct {
 	Labels    map[string]string `json:"labels"`
 	Timestamp time.Time         `json:"timestamp"`
@@ -28,13 +26,22 @@ type data struct {
 }
 
 func main() {
+	var noopl nooplogger
+	var stdout = log.New(os.Stdout, "", 0)
 	http.HandleFunc("/loki/api/v1/push", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Println("http panic", r)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		}()
+
 		if r.Method != http.MethodPost {
 			w.WriteHeader(405)
 			return
 		}
 
-		req, err := push.ParseRequest(logger, "", r, nil)
+		req, err := push.ParseRequest(noopl, "", r, nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			log.Println("parse request failed:", err)
@@ -54,17 +61,21 @@ func main() {
 			for _, e := range s.Entries {
 				d.Line = e.Line
 				d.Timestamp = e.Timestamp
-				err := json.NewEncoder(os.Stdout).Encode(d)
+				b, err := json.Marshal(d)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					log.Println("json encoding failed:", err)
 					return
 				}
+				stdout.Println(string(b))
 			}
 		}
 
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
-	http.ListenAndServe(":3100", nil)
+	log.Println("listening on :3100")
+	if err := http.ListenAndServe(":3100", nil); err != nil {
+		log.Fatal("http server exited:", err)
+	}
 }
