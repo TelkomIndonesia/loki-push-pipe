@@ -1,5 +1,5 @@
 services:
-  fluent-input:
+  loki-client:
     image: fluent/fluent-bit:2.1.4-debug
     restart: unless-stopped
     environment:
@@ -8,7 +8,7 @@ services:
       - $PWD:$PWD
     working_dir: $PWD
     entrypoint: /fluent-bit/bin/fluent-bit
-    command: -c fluentbit-input.conf
+    command: -c loki-client.conf
 
   init-pipe:
     image: busybox
